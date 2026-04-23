@@ -1,4 +1,4 @@
-# FlowFormer-Region-Growing
+# PixelDynamics
 
 ![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
 ![PyTorch](https://img.shields.io/badge/PyTorch-Framework-red.svg)
@@ -20,7 +20,7 @@ The core pipeline utilizes **FlowFormer** for high-quality optical flow extracti
 ## Project Structure
 
 ```
-FlowFormer-Region-Growing/
+PixelDynamics/
 ├── data/               # Directory for storing the DAVIS dataset and any pre-processed files
 ├── models/             # Directory for FlowFormer checkpoints and other model weights
 ├── notebooks/          # Jupyter notebooks for experimentation, visualization, and EDA
@@ -36,7 +36,7 @@ FlowFormer-Region-Growing/
 1. **Clone the repository:**
    ```bash
    git clone <repository_url>
-   cd FlowFormer-Region-Growing
+   cd PixelDynamics
    ```
 
 2. **Create a virtual environment (optional but recommended):**
