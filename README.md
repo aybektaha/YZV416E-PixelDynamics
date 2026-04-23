@@ -1,4 +1,4 @@
-# PixelDynamics
+# YZV416E-PixelDynamics
 
 ![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
 ![PyTorch](https://img.shields.io/badge/PyTorch-Framework-red.svg)
@@ -20,7 +20,7 @@ The core pipeline utilizes **FlowFormer** for high-quality optical flow extracti
 ## Project Structure
 
 ```
-PixelDynamics/
+YZV416E-PixelDynamics/
 ├── data/               # Directory for storing the DAVIS dataset and any pre-processed files
 ├── models/             # Directory for FlowFormer checkpoints and other model weights
 ├── notebooks/          # Jupyter notebooks for experimentation, visualization, and EDA
