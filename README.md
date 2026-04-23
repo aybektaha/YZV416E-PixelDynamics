@@ -36,7 +36,7 @@ YZV416E-PixelDynamics/
 1. **Clone the repository:**
    ```bash
    git clone <repository_url>
-   cd PixelDynamics
+   cd YZV416E-PixelDynamics
    ```
 
 2. **Create a virtual environment (optional but recommended):**
@@ -57,7 +57,3 @@ YZV416E-PixelDynamics/
 - [ ] Integrate FlowFormer for optical flow extraction.
 - [ ] Download and prepare the DAVIS dataset.
 - [ ] Adapt region growing to utilize multi-dimensional optical flow vectors.
-
-## License
-
-This project is licensed under the MIT License.
