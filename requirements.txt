@@ -5,3 +5,5 @@ numpy
 matplotlib
 tqdm
 scipy
+gdown
+pillow
