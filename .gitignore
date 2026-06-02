@@ -2,6 +2,7 @@
 data/DAVIS/
 data/flow/
 models/RAFT/
+models/FlowFormer/
 *.pth
 *.zip
 *.npy
