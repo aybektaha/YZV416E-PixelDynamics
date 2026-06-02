@@ -1,0 +1,27 @@
+# --- Datasets, model weights, generated artifacts (do NOT commit, too large) ---
+data/DAVIS/
+data/flow/
+models/RAFT/
+*.pth
+*.zip
+*.npy
+
+# --- Pipeline outputs ---
+# Ignore everything in results/ (per-frame mask folders are large & regenerable)...
+results/*
+# ...then re-include the report figures and metric tables.
+!results/viz_*.png
+!results/*.csv
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# --- OS ---
+.DS_Store
+
+# --- Personal notes (not for the shared repo) ---
+docs/PROJECT_NOTES.md

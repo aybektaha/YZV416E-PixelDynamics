@@ -1,8 +1,9 @@
 #!/bin/bash
 # Script to clone RAFT and download its model checkpoints
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 echo "Navigating to models directory..."
-mkdir -p ../models
-cd ../models
+mkdir -p "$DIR/../models"
+cd "$DIR/../models"
 
 if [ ! -d "RAFT" ]; then
     echo "Cloning RAFT repository..."
