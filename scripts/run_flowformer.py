@@ -285,7 +285,6 @@ def main():
     for r in errors:
         print(f"    {r['seq']}: {r['error']}")
 
-    flow_out = OUTPUTS_ROOT / "flows" / "flowformer"
     print(f"\nFlows -> {FLOW_ROOT}")
     if not args.no_viz:
         print(f"Viz   -> {VIZ_ROOT}")
