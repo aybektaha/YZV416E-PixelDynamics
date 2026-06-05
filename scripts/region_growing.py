@@ -44,7 +44,8 @@ class RegionGrowingConfig:
     min_area: int = 200                # drop regions smaller than this (px)
     # --- preprocessing ---
     smooth_sigma: float = 1.0          # gaussian sigma on flow (0 = off)
-    compensate_camera: bool = True     # subtract median (background) flow
+    compensate_camera: bool = True     # subtract background flow
+    compensate_mode: str = "median"    # "median" | "homography"
     # --- unified (flow + appearance) ---
     lambda_rgb: float = 0.0            # 0 = motion only; >0 also needs RGB sim
     rgb_tau: float = 12.0              # max RGB L2 distance to merge (0-255)
@@ -61,11 +62,51 @@ def _gaussian_blur_flow(flow, sigma):
     return out
 
 
+def _compensate_homography(flow, n_samples=8000, reproj_thresh=2.0):
+    """Estimate background motion as a homography via RANSAC and subtract it.
+
+    Fits H such that H * [x,y,1]^T ≈ [x+dx, y+dy, 1]^T for background pixels.
+    Foreground pixels are naturally rejected as RANSAC outliers.
+    Falls back to median subtraction if fitting fails.
+    """
+    try:
+        import cv2
+    except ImportError:
+        med = np.median(flow.reshape(-1, 2), axis=0)
+        return flow - med
+
+    H, W = flow.shape[:2]
+    yy, xx = np.mgrid[0:H, 0:W]
+    src = np.stack([xx, yy], axis=-1).reshape(-1, 2).astype(np.float32)
+    dst = src + flow.reshape(-1, 2).astype(np.float32)
+
+    # Subsample for speed — 8k points is more than enough for a robust fit
+    if len(src) > n_samples:
+        idx = np.random.choice(len(src), n_samples, replace=False)
+        src_s, dst_s = src[idx], dst[idx]
+    else:
+        src_s, dst_s = src, dst
+
+    hmat, _ = cv2.findHomography(src_s, dst_s, cv2.RANSAC, reproj_thresh)
+    if hmat is None:                        # RANSAC failed — fall back
+        med = np.median(flow.reshape(-1, 2), axis=0)
+        return flow - med
+
+    # Predict background flow at every pixel from the homography
+    ones = np.ones((H * W, 1), dtype=np.float32)
+    src_h = np.hstack([src, ones])                          # (N, 3)
+    pred_h = (hmat @ src_h.T).T                             # (N, 3)
+    pred_xy = pred_h[:, :2] / pred_h[:, 2:3]               # dehomogenise
+    pred_flow = (pred_xy - src).reshape(H, W, 2)
+
+    return flow - pred_flow
+
+
 def _foreground_mask(mag, cfg):
     """Boolean mask of pixels that move significantly w.r.t. the background."""
     if cfg.threshold_mode == "fixed":
         thr = cfg.fixed_thresh
-    else:  # adaptive: relative to this frame's magnitude distribution
+    else:  # "adaptive": relative to this frame's magnitude distribution
         thr = float(mag.mean() + cfg.seed_k * mag.std())
     return mag > thr, thr
 
@@ -140,10 +181,11 @@ def segment_frame(flow, cfg: RegionGrowingConfig, rgb=None):
     H, W = flow.shape[:2]
 
     if cfg.compensate_camera:
-        # Background ~ dominant motion; subtract its median so the static world
-        # has ~zero flow and only independently moving objects stand out.
-        med = np.median(flow.reshape(-1, 2), axis=0)
-        flow = flow - med
+        if cfg.compensate_mode == "homography":
+            flow = _compensate_homography(flow)
+        else:  # "median" — default, preserves original behaviour
+            med = np.median(flow.reshape(-1, 2), axis=0)
+            flow = flow - med
 
     if cfg.smooth_sigma > 0:
         flow = _gaussian_blur_flow(flow, cfg.smooth_sigma)
@@ -234,7 +276,9 @@ def main():
     p.add_argument("--min-area", type=int, default=200)
     p.add_argument("--smooth-sigma", type=float, default=1.0)
     p.add_argument("--compensate-camera", action=argparse.BooleanOptionalAction,
-                   default=True, help="subtract median background flow (default on)")
+                   default=True, help="compensate background flow (default on)")
+    p.add_argument("--compensate-mode", default="median", choices=["median", "homography"],
+                   help="compensation method: median subtraction (default) or RANSAC homography")
     p.add_argument("--lambda-rgb", type=float, default=0.0)
     p.add_argument("--rgb-tau", type=float, default=12.0)
     args = p.parse_args()
@@ -243,8 +287,9 @@ def main():
         threshold_mode=args.threshold_mode, seed_k=args.seed_k,
         fixed_thresh=args.fixed_thresh, connectivity=args.connectivity,
         tau=args.tau, min_area=args.min_area, smooth_sigma=args.smooth_sigma,
-        compensate_camera=args.compensate_camera, lambda_rgb=args.lambda_rgb,
-        rgb_tau=args.rgb_tau,
+        compensate_camera=args.compensate_camera,
+        compensate_mode=args.compensate_mode,
+        lambda_rgb=args.lambda_rgb, rgb_tau=args.rgb_tau,
     )
 
     if args.sequences == "all":
