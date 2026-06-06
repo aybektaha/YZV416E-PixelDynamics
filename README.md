@@ -50,10 +50,175 @@ YZV416E-PixelDynamics/
    pip install -r requirements.txt
    ```
 
-## Roadmap
+## Dataset
 
-- [ ] Setup project scaffolding and basic folder structure.
-- [ ] Implement initial 2D Region Growing algorithm.
-- [ ] Integrate FlowFormer for optical flow extraction.
-- [ ] Download and prepare the DAVIS dataset.
-- [ ] Adapt region growing to utilize multi-dimensional optical flow vectors.
+Download the DAVIS 2017 Unsupervised dataset (~2 GB) using the provided script:
+
+```bash
+bash scripts/download_davis.sh
+```
+
+This downloads and extracts the dataset into `data/DAVIS/`. The folder structure will be:
+
+```
+data/DAVIS/
+├── JPEGImages/480p/        # RGB frames
+├── Annotations_unsupervised/480p/  # Ground-truth masks
+└── ImageSets/2017/         # train.txt / val.txt split files
+```
+
+---
+
+## Model Setup
+
+### RAFT
+
+```bash
+bash scripts/setup_raft.sh
+```
+
+This clones the RAFT repository into `models/RAFT/` and downloads the pretrained checkpoints automatically.
+
+### FlowFormer
+
+```bash
+bash scripts/setup_flowformer.sh           # downloads things.pth (default, recommended)
+```
+
+This clones the FlowFormer repository into `models/FlowFormer/` and downloads the selected checkpoint. Requires `gdown` (`pip install gdown`).
+
+### GMFlow
+
+There is no setup script for GMFlow. Clone it manually:
+
+```bash
+git clone https://github.com/haofeixu/gmflow.git
+```
+
+Place the cloned folder at the project root so it is accessible as `gmflow/`.
+
+---
+
+## Flow Extraction
+
+> **Warning:** Extracting optical flow for the full DAVIS val split is a time-consuming process. Expect **5–6 hours** on a mid-range GPU and approximately **20 GB** of disk space for the generated `.npy` files.
+>
+> Pre-extracted flow files are available on Google Drive: **[LINK — TBD]**
+> Download and place them under `data/flow/` to skip extraction entirely.
+
+### RAFT
+
+```bash
+python scripts/flow_extraction.py --sequences val
+```
+
+Output: `data/flow/raft/<sequence>/<frame>.npy`
+
+### FlowFormer
+
+```bash
+python scripts/run_flowformer.py --sequences val
+```
+
+Output: `data/flow/flowformer/<sequence>/<frame>.npy`
+
+### GMFlow
+
+```bash
+python scripts/gmflow_extraction.py --sequences val
+```
+
+Output: `data/flow/gmflow/<sequence>/<frame>.npy`
+
+For any backbone, replace `val` with a comma-separated list to run on specific sequences only:
+
+```bash
+python scripts/flow_extraction.py --sequences bear,dog,camel
+```
+
+---
+
+## Running the Pipeline
+
+Once flow is extracted, the rest of the pipeline runs on CPU and is fast.
+
+### 1. Region Growing — Generate Masks
+
+```bash
+python scripts/region_growing.py \
+    --flow-root data/flow/flowformer \
+    --out-root results/flowformer_rg \
+    --sequences val
+```
+
+Replace `--flow-root` with `data/flow/raft` or `data/flow/gmflow` to use a different backbone. Results are saved as DAVIS-palette PNG masks under `results/<method>/<sequence>/<frame>.png`.
+
+### 2. Evaluation — Compute J & F
+
+```bash
+python scripts/evaluate.py \
+    --pred results/flowformer_rg \
+    --sequences val \
+    --csv results/flowformer_rg.csv
+```
+
+Prints per-sequence J, F, J&F and mean across all sequences. Pass `--csv <path>` to also save a CSV.
+
+### 3. One-Command Pipeline
+
+To run flow extraction → region growing → evaluation in a single command:
+
+```bash
+python scripts/run_pipeline.py --sequences bear
+```
+
+### 4. Ablation Studies
+
+To run a grid of region growing configurations and compare them:
+
+```bash
+python scripts/run_ablations.py \
+    --flow-root data/flow/flowformer \
+    --sequences val \
+    --out results/ablations.csv
+```
+
+This evaluates 20 configurations (camera compensation, threshold mode, τ, connectivity, smoothing) and writes one CSV row per configuration.
+
+### 5. Visualizations
+
+**Camera motion compensation effect** — shows raw flow, compensated flow, magnitude heatmaps with threshold marked, and resulting foreground masks side by side for before/after compensation:
+
+```bash
+python scripts/visualize_camera_compensation.py --sequence bear
+python scripts/visualize_camera_compensation.py --sequence bear --frame 00030   # single frame
+```
+
+Output: `results/camera_compensation_viz_<sequence>/`
+
+---
+
+**No-threshold experiment** — compares four segmentation variants (standard, threshold only, no threshold without compensation, no threshold with compensation) alongside a local flow-difference map that explains why removing the magnitude threshold does not work with smooth learned flow fields:
+
+```bash
+python scripts/visualize_no_threshold.py --sequence bear
+python scripts/visualize_no_threshold.py --sequence bear --frame 00030   # single frame
+```
+
+Output: `results/no_threshold_viz_<sequence>/`
+
+---
+
+## Key Configuration Options
+
+The region growing algorithm is controlled by `RegionGrowingConfig` in `scripts/region_growing.py`. The most important flags exposed on the CLI:
+
+| Flag | Default | Description |
+|---|---|---|
+| `--threshold-mode` | `adaptive` | `adaptive` (mean + k·std) or `fixed` |
+| `--seed-k` | `1.0` | k multiplier for adaptive threshold |
+| `--tau` | `1.5` | Max flow-vector difference to merge neighbours (px) |
+| `--smooth-sigma` | `1.0` | Gaussian blur sigma on flow (0 = off) |
+| `--compensate-camera` / `--no-compensate-camera` | on | Subtract background flow before processing |
+| `--compensate-mode` | `median` | `median` or `homography` (RANSAC-based) |
+| `--min-area` | `200` | Minimum region size in pixels |
