@@ -11,6 +11,22 @@ This project aims to perform accurate motion-based segmentation on video sequenc
 
 The core pipeline utilizes **FlowFormer** for high-quality optical flow extraction. These extracted motion cues are then used to seed and guide a **Region Growing** algorithm to produce precise object masks.
 
+## Pipeline
+
+![Pipeline Diagram](assets/diagram.png)
+
+## Camera Motion Compensation
+
+On tracking-camera sequences the subject appears nearly stationary in the raw optical flow while the background dominates with large magnitude. Without compensation the subject falls below the foreground threshold and is never detected. With compensation the background motion is removed, the subject's residual motion stands out, and the foreground mask correctly isolates it. The visualisation below shows this effect on the bear sequence (frame 00030).
+
+![Camera Compensation](assets/camera_compensation_viz_bear_00030.png)
+
+## No-Threshold Experiment
+
+Comparison of segmentation variants when the magnitude threshold is removed, alongside a local flow-difference map explaining why smooth learned flow boundaries prevent region growing from separating objects without the magnitude gate.
+
+![No Threshold](assets/no_threshold_viz_bear_00030.png)
+
 ## Features
 
 - **High-Fidelity Optical Flow:** Integration with FlowFormer to extract dense, accurate motion fields between video frames.
@@ -21,14 +37,26 @@ The core pipeline utilizes **FlowFormer** for high-quality optical flow extracti
 
 ```
 YZV416E-PixelDynamics/
-├── data/               # Directory for storing the DAVIS dataset and any pre-processed files
-├── models/             # Directory for FlowFormer checkpoints and other model weights
-├── notebooks/          # Jupyter notebooks for experimentation, visualization, and EDA
-├── scripts/            # Source code for the project
-│   ├── flow_extraction.py  # Script to run FlowFormer and extract optical flow
-│   └── region_growing.py   # Implementation of the motion-based region growing algorithm
-├── requirements.txt    # Project dependencies
-└── README.md           # Project documentation
+├── assets/             # Images used in this README (pipeline diagram, visualizations)
+├── data/               # DAVIS dataset and extracted flow fields
+├── models/             # Flow backbone repositories and checkpoints
+├── notebooks/          # Jupyter notebooks for experimentation and EDA
+├── results/            # Generated masks, evaluation CSVs, visualization outputs
+├── scripts/            # All pipeline scripts
+│   ├── region_growing.py           # Region growing algorithm
+│   ├── flow_extraction.py          # RAFT flow extraction
+│   ├── run_flowformer.py           # FlowFormer flow extraction
+│   ├── gmflow_extraction.py        # GMFlow flow extraction
+│   ├── evaluate.py                 # J & F evaluation
+│   ├── run_pipeline.py             # End-to-end pipeline runner
+│   ├── run_ablations.py            # Ablation grid
+│   ├── visualize_camera_compensation.py
+│   ├── visualize_no_threshold.py
+│   ├── download_davis.sh           # Dataset download
+│   ├── setup_raft.sh               # RAFT setup
+│   └── setup_flowformer.sh         # FlowFormer setup
+├── requirements.txt
+└── README.md
 ```
 
 ## Setup & Installation
