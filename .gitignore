@@ -12,6 +12,7 @@ models/FlowFormer/
 results/*
 # ...then re-include the report figures and metric tables.
 !results/viz_*.png
+!results/comparison.png
 !results/*.csv
 
 # --- Python ---
@@ -26,3 +27,4 @@ venv/
 
 # --- Personal notes (not for the shared repo) ---
 docs/PROJECT_NOTES.md
+docs/AYBEK_CALISMA_NOTLARI.md
