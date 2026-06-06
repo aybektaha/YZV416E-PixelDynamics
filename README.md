@@ -15,18 +15,6 @@ The core pipeline utilizes **FlowFormer** for high-quality optical flow extracti
 
 ![Pipeline Diagram](assets/diagram.png)
 
-## Camera Motion Compensation
-
-On tracking-camera sequences the subject appears nearly stationary in the raw optical flow while the background dominates with large magnitude. Without compensation the subject falls below the foreground threshold and is never detected. With compensation the background motion is removed, the subject's residual motion stands out, and the foreground mask correctly isolates it. The visualisation below shows this effect on the bear sequence (frame 00030).
-
-![Camera Compensation](assets/camera_compensation_viz_bear_00030.png)
-
-## No-Threshold Experiment
-
-Comparison of segmentation variants when the magnitude threshold is removed, alongside a local flow-difference map explaining why smooth learned flow boundaries prevent region growing from separating objects without the magnitude gate.
-
-![No Threshold](assets/no_threshold_viz_bear_00030.png)
-
 ## Features
 
 - **High-Fidelity Optical Flow:** Integration with FlowFormer to extract dense, accurate motion fields between video frames.
@@ -224,6 +212,10 @@ python scripts/visualize_camera_compensation.py --sequence bear --frame 00030   
 
 Output: `results/camera_compensation_viz_<sequence>/`
 
+On tracking-camera sequences the subject appears nearly stationary in the raw optical flow while the background dominates with large magnitude. Without compensation the subject falls below the foreground threshold and is never detected. With compensation the background motion is removed, the subject's residual motion stands out, and the foreground mask correctly isolates it.
+
+![Camera Compensation](assets/camera_compensation_viz_bear_00030.png)
+
 ---
 
 **No-threshold experiment** — compares four segmentation variants (standard, threshold only, no threshold without compensation, no threshold with compensation) alongside a local flow-difference map that explains why removing the magnitude threshold does not work with smooth learned flow fields:
@@ -234,6 +226,10 @@ python scripts/visualize_no_threshold.py --sequence bear --frame 00030   # singl
 ```
 
 Output: `results/no_threshold_viz_<sequence>/`
+
+Comparison of segmentation variants when the magnitude threshold is removed, alongside a local flow-difference map explaining why smooth learned flow boundaries prevent region growing from separating objects without the magnitude gate.
+
+![No Threshold](assets/no_threshold_viz_bear_00030.png)
 
 ---
 
